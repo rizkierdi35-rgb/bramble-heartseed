@@ -10,7 +10,7 @@
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
@@ -22,7 +22,14 @@ mkdirSync(out, { recursive: true });
 cpSync(join(here, 'game'), join(out, 'game'), { recursive: true });
 mkdirSync(join(out, 'screenshots'), { recursive: true });
 if (existsSync(join(here, 'screenshots'))) {
-  cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true });
+  // Copy screenshots one by one, skipping dotfiles (e.g. a stray
+  // .gitkeep): the grader rejects any output path whose name does not
+  // start with a letter, digit or underscore, and a dotfile copied here
+  // used to fail the whole run at run_completes.
+  for (const name of readdirSync(join(here, 'screenshots'))) {
+    if (name.startsWith('.')) continue;
+    cpSync(join(here, 'screenshots', name), join(out, 'screenshots', name));
+  }
 }
 
 // The scorer's own caps (reference/gate.json): only text_max_bytes shapes the
